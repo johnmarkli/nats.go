@@ -101,6 +101,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("Can't connect: %v\n", err)
 		}
+		fmt.Println("main.go CONNECTED: ", *urls)
 		defer nc.Close()
 
 		go runSubscriber(nc, &startwg, &donewg, *numMsgs, *msgSize)

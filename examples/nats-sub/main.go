@@ -15,6 +15,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"runtime"
@@ -74,6 +75,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("main.go CONNECTED: ", *urls)
 
 	subj, i := args[0], 0
 
@@ -98,6 +100,7 @@ func main() {
 func setupConnOptions(opts []nats.Option) []nats.Option {
 	totalWait := 10 * time.Minute
 	reconnectDelay := time.Second
+	timeout := 3 * time.Second
 
 	opts = append(opts, nats.ReconnectWait(reconnectDelay))
 	opts = append(opts, nats.MaxReconnects(int(totalWait/reconnectDelay)))
@@ -110,5 +113,6 @@ func setupConnOptions(opts []nats.Option) []nats.Option {
 	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
 		log.Fatalf("Exiting: %v", nc.LastError())
 	}))
+	opts = append(opts, nats.Timeout(timeout))
 	return opts
 }

@@ -1010,6 +1010,8 @@ func (o Options) Connect() (*Conn, error) {
 		}
 	}
 
+	fmt.Printf("Connect Opts: %+v\n", nc.Opts)
+
 	if err := nc.setupServerPool(); err != nil {
 		return nil, err
 	}
@@ -1245,6 +1247,7 @@ func (nc *Conn) newBuffer() *bufio.Writer {
 // bufio structures. It will do the right thing when an existing
 // connection is in place.
 func (nc *Conn) createConn() (err error) {
+	fmt.Println("CREATING CONNECTION")
 	if nc.Opts.Timeout < 0 {
 		return ErrBadTimeout
 	}
@@ -1258,16 +1261,20 @@ func (nc *Conn) createConn() (err error) {
 	hosts := []string{}
 	u := nc.current.url
 
+	fmt.Println("nats.go expanding host", u.Hostname())
 	if net.ParseIP(u.Hostname()) == nil {
 		addrs, _ := net.LookupHost(u.Hostname())
+		fmt.Println("nats.go found host expansion addrs", addrs)
 		for _, addr := range addrs {
 			hosts = append(hosts, net.JoinHostPort(addr, u.Port()))
 		}
 	}
 	// Fall back to what we were given.
 	if len(hosts) == 0 {
+		fmt.Println("nats.go falling back to host", u.Host)
 		hosts = append(hosts, u.Host)
 	}
+	fmt.Println("nats.go hosts to connect ", hosts)
 
 	// CustomDialer takes precedence. If not set, use Opts.Dialer which
 	// is set to a default *net.Dialer (in Connect()) if not explicitly
@@ -1286,7 +1293,20 @@ func (nc *Conn) createConn() (err error) {
 		})
 	}
 	for _, host := range hosts {
+		var addrs []string
+		fmt.Println("nats.go looking up google")
+		addrs, err = net.LookupHost("google.com")
+		fmt.Println("nats.go done lookup google ", addrs, err)
+		fmt.Println("nats.go dialing google", addrs[0])
+		nc.conn, err = dialer.Dial("tcp", addrs[0]+":80")
+		fmt.Println("nats.go finished dialing google with error", err)
+		// fmt.Println("nats.go looking up host nats", host)
+		// addrs, err = net.LookupHost("nats")
+		// fmt.Println("nats.go done lookup up host ", addrs, err)
+		// fmt.Println("nats.go dialing host ", host)
+		fmt.Printf("nats.go dialing with dialer: %+v\n", dialer)
 		nc.conn, err = dialer.Dial("tcp", host)
+		fmt.Println("nats.go finished dialing with error", err)
 		if err == nil {
 			break
 		}
@@ -1457,6 +1477,7 @@ func (nc *Conn) connect() error {
 		nc.current = nc.srvPool[i]
 
 		if err := nc.createConn(); err == nil {
+			fmt.Println("nats.go SUCCESS CONN: ", nc.urls)
 			// This was moved out of processConnectInit() because
 			// that function is now invoked from doReconnect() too.
 			nc.setup()
@@ -1479,6 +1500,7 @@ func (nc *Conn) connect() error {
 		} else {
 			// Cancel out default connection refused, will trigger the
 			// No servers error conditional
+			fmt.Println("nats.go ERROR CONN: ", nc.urls, err)
 			if strings.Contains(err.Error(), "connection refused") {
 				returnedErr = nil
 			}
